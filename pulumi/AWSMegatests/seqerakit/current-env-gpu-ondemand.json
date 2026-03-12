@@ -8,11 +8,17 @@
   "nvnmeStorageEnabled": true,
   "fusionSnapshots": true,
   "forge": {
-    "type": "SPOT",
+    "type": "EC2",
     "minCpus": 0,
     "maxCpus": 500,
-    "gpuEnabled": false,
-    "instanceTypes": ["m6gd", "r6gd", "c6gd"],
+    "gpuEnabled": true,
+    "instanceTypes": [
+      "g4dn",
+      "g5",
+      "c6id",
+      "m6id",
+      "r6id"
+    ],
     "subnets": [],
     "securityGroups": [],
     "disposeOnDeletion": true,
@@ -22,8 +28,7 @@
       "s3://annotation-cache/"
     ],
     "efsCreate": false,
-    "fargateHeadEnabled": true,
-    "arm64Enabled": true
+    "dragenEnabled": false
   },
   "labels": []
 }

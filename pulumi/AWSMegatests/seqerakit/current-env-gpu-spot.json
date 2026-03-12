@@ -10,9 +10,9 @@
   "forge": {
     "type": "SPOT",
     "minCpus": 0,
-    "maxCpus": 1000,
-    "gpuEnabled": false,
-    "instanceTypes": ["c6id", "m6id", "r6id"],
+    "maxCpus": 500,
+    "gpuEnabled": true,
+    "instanceTypes": ["g4dn", "g5", "c6id", "m6id", "r6id"],
     "subnets": [],
     "securityGroups": [],
     "disposeOnDeletion": true,
@@ -22,9 +22,8 @@
       "s3://annotation-cache/"
     ],
     "efsCreate": false,
-    "ebsBootSize": 50,
-    "fargateHeadEnabled": true,
-    "arm64Enabled": false
+    "dragenEnabled": false,
+    "fargateHeadEnabled": true
   },
   "labels": []
 }

@@ -4,15 +4,15 @@
   "workDir": "s3://nf-core-awsmegatests",
   "environment": [],
   "waveEnabled": true,
-  "fusion2Enabled": true,
-  "nvnmeStorageEnabled": true,
-  "fusionSnapshots": true,
+  "fusion2Enabled": false,
+  "nvnmeStorageEnabled": false,
+  "fusionSnapshots": false,
   "forge": {
-    "type": "SPOT",
+    "type": "EC2",
     "minCpus": 0,
     "maxCpus": 500,
     "gpuEnabled": false,
-    "instanceTypes": ["m6gd", "r6gd", "c6gd"],
+    "instanceTypes": ["c6i", "m6i", "r6i"],
     "subnets": [],
     "securityGroups": [],
     "disposeOnDeletion": true,
@@ -22,8 +22,8 @@
       "s3://annotation-cache/"
     ],
     "efsCreate": false,
-    "fargateHeadEnabled": true,
-    "arm64Enabled": true
+    "fargateHeadEnabled": false,
+    "arm64Enabled": false
   },
   "labels": []
 }

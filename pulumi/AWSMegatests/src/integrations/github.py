@@ -105,10 +105,10 @@ def create_github_resources(
     # Using delete_before_replace to work around pulumi/pulumi-github#250
     variables = {}
 
-    # Compute environment variables
-    for env_type in ["cpu", "gpu", "arm"]:
+    # Compute environment variables (spot + on-demand fallback)
+    for env_type in ["cpu", "gpu", "arm", "s3", "cpu_ondemand", "gpu_ondemand", "s3_ondemand"]:
         var_name = GITHUB_VARIABLE_NAMES[env_type]
-        resource_name = f"tower-compute-env-{env_type}"
+        resource_name = f"tower-compute-env-{env_type.replace('_', '-')}"
 
         variables[env_type] = _create_organization_variable(
             github_provider,
