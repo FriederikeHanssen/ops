@@ -13,6 +13,14 @@ COMPUTE_ENV_NAMES = {
     "cpu": "aws_ireland_fusionv2_nvme_cpu_snapshots",
     "gpu": "aws_ireland_fusionv2_nvme_gpu_snapshots",
     "arm": "aws_ireland_fusionv2_nvme_cpu_ARM_snapshots",
+    "s3": "aws_ireland_s3_cpu",
+}
+
+# On-demand fallback Compute Environment Names
+COMPUTE_ENV_NAMES_ONDEMAND = {
+    "cpu_ondemand": "aws_ireland_fusionv2_nvme_cpu_ondemand",
+    "gpu_ondemand": "aws_ireland_fusionv2_nvme_gpu_ondemand",
+    "s3_ondemand": "aws_ireland_s3_cpu_ondemand",
 }
 
 # Compute Environment Descriptions
@@ -20,6 +28,14 @@ COMPUTE_ENV_DESCRIPTIONS = {
     "cpu": "CPU compute environment with Fusion v2 and NVMe storage",
     "gpu": "GPU compute environment with Fusion v2 and NVMe storage",
     "arm": "ARM CPU compute environment with Fusion v2 and NVMe storage",
+    "s3": "CPU compute environment with S3 storage (no Fusion)",
+}
+
+# On-demand fallback Compute Environment Descriptions
+COMPUTE_ENV_DESCRIPTIONS_ONDEMAND = {
+    "cpu_ondemand": "CPU on-demand fallback compute environment with Fusion v2 and NVMe storage",
+    "gpu_ondemand": "GPU on-demand fallback compute environment with Fusion v2 and NVMe storage",
+    "s3_ondemand": "CPU on-demand fallback compute environment with S3 storage (no Fusion)",
 }
 
 # Configuration File Paths
@@ -27,6 +43,14 @@ CONFIG_FILES = {
     "cpu": "seqerakit/current-env-cpu.json",
     "gpu": "seqerakit/current-env-gpu.json",
     "arm": "seqerakit/current-env-cpu-arm.json",
+    "s3": "seqerakit/current-env-cpu-s3.json",
+}
+
+# On-demand fallback Configuration File Paths
+CONFIG_FILES_ONDEMAND = {
+    "cpu_ondemand": "seqerakit/current-env-cpu-ondemand.json",
+    "gpu_ondemand": "seqerakit/current-env-gpu-ondemand.json",
+    "s3_ondemand": "seqerakit/current-env-cpu-s3-ondemand.json",
 }
 
 # Nextflow configuration files for compute environments
@@ -34,6 +58,14 @@ NEXTFLOW_CONFIG_FILES = {
     "cpu": "seqerakit/configs/nextflow-cpu.config",
     "gpu": "seqerakit/configs/nextflow-gpu.config",
     "arm": "seqerakit/configs/nextflow-arm.config",
+    "s3": "seqerakit/configs/nextflow-cpu-s3.config",
+}
+
+# On-demand fallback Nextflow configuration files
+NEXTFLOW_CONFIG_FILES_ONDEMAND = {
+    "cpu_ondemand": "seqerakit/configs/nextflow-cpu-ondemand.config",
+    "gpu_ondemand": "seqerakit/configs/nextflow-gpu-ondemand.config",
+    "s3_ondemand": "seqerakit/configs/nextflow-cpu-s3-ondemand.config",
 }
 
 # TowerForge Configuration
@@ -55,6 +87,10 @@ GITHUB_VARIABLE_NAMES = {
     "cpu": "TOWER_COMPUTE_ENV_CPU",
     "gpu": "TOWER_COMPUTE_ENV_GPU",
     "arm": "TOWER_COMPUTE_ENV_ARM",
+    "s3": "TOWER_COMPUTE_ENV_S3",
+    "cpu_ondemand": "TOWER_COMPUTE_ENV_CPU_ONDEMAND",
+    "gpu_ondemand": "TOWER_COMPUTE_ENV_GPU_ONDEMAND",
+    "s3_ondemand": "TOWER_COMPUTE_ENV_S3_ONDEMAND",
     "workspace_id": "TOWER_WORKSPACE_ID",
     "s3_bucket": "AWS_S3_BUCKET",
 }

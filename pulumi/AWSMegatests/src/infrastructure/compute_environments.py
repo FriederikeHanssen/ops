@@ -9,9 +9,13 @@ import pulumi_seqera as seqera
 
 from ..utils.constants import (
     COMPUTE_ENV_NAMES,
+    COMPUTE_ENV_NAMES_ONDEMAND,
     COMPUTE_ENV_DESCRIPTIONS,
+    COMPUTE_ENV_DESCRIPTIONS_ONDEMAND,
     CONFIG_FILES,
+    CONFIG_FILES_ONDEMAND,
     NEXTFLOW_CONFIG_FILES,
+    NEXTFLOW_CONFIG_FILES_ONDEMAND,
     DEFAULT_COMPUTE_ENV_CONFIG,
     DEFAULT_FORGE_CONFIG,
     TIMEOUTS,
@@ -43,7 +47,7 @@ def load_nextflow_config(env_type: str) -> str:
     Raises:
         ConfigurationError: If file loading fails
     """
-    config_file = NEXTFLOW_CONFIG_FILES.get(env_type)
+    config_file = NEXTFLOW_CONFIG_FILES.get(env_type) or NEXTFLOW_CONFIG_FILES_ONDEMAND.get(env_type)
     if not config_file:
         raise ConfigurationError(
             f"No Nextflow config file defined for environment type: {env_type}"
@@ -327,15 +331,16 @@ def deploy_seqera_environments_terraform(
 
         provider = create_seqera_provider(config)
 
-    # Load all configuration files
-    cpu_config = load_config_file(CONFIG_FILES["cpu"])
-    gpu_config = load_config_file(CONFIG_FILES["gpu"])
-    arm_config = load_config_file(CONFIG_FILES["arm"])
+    # Load all spot configuration files
+    configs = {key: load_config_file(path) for key, path in CONFIG_FILES.items()}
+
+    # Load on-demand fallback configuration files (ARM excluded: Graviton requires Fargate which is SPOT-only)
+    ondemand_configs = {key: load_config_file(path) for key, path in CONFIG_FILES_ONDEMAND.items()}
 
     # Validate workspace ID
     workspace_id = float(config["tower_workspace_id"])
 
-    # Create all three compute environments
+    # Create all compute environments (spot + on-demand fallback)
     environments = {}
 
     # Set up dependencies - compute environments depend on Seqera credential resource
@@ -343,13 +348,27 @@ def deploy_seqera_environments_terraform(
     if seqera_credential_resource:
         depends_on_resources.append(seqera_credential_resource)
 
-    for env_type, config_data in [
-        ("cpu", cpu_config),
-        ("gpu", gpu_config),
-        ("arm", arm_config),
-    ]:
+    # Deploy spot compute environments
+    for env_type, config_data in configs.items():
         env_name = COMPUTE_ENV_NAMES[env_type]
         description = COMPUTE_ENV_DESCRIPTIONS[env_type]
+
+        environments[f"{env_type}_env"] = create_compute_environment(
+            provider=provider,
+            name=env_name,
+            credentials_id=towerforge_credentials_id,
+            workspace_id=workspace_id,
+            config_args=config_data,
+            env_type=env_type,
+            description=description,
+            depends_on=depends_on_resources if depends_on_resources else None,
+            iam_policy_version=iam_policy_hash,
+        )
+
+    # Deploy on-demand fallback compute environments (ARM excluded: Graviton requires Fargate which is SPOT-only)
+    for env_type, config_data in ondemand_configs.items():
+        env_name = COMPUTE_ENV_NAMES_ONDEMAND[env_type]
+        description = COMPUTE_ENV_DESCRIPTIONS_ONDEMAND[env_type]
 
         environments[f"{env_type}_env"] = create_compute_environment(
             provider=provider,
@@ -384,4 +403,8 @@ def get_compute_environment_ids_terraform(
         "cpu": terraform_resources["cpu_env"].compute_env_id,
         "gpu": terraform_resources["gpu_env"].compute_env_id,
         "arm": terraform_resources["arm_env"].compute_env_id,
+        "s3": terraform_resources["s3_env"].compute_env_id,
+        "cpu_ondemand": terraform_resources["cpu_ondemand_env"].compute_env_id,
+        "gpu_ondemand": terraform_resources["gpu_ondemand_env"].compute_env_id,
+        "s3_ondemand": terraform_resources["s3_ondemand_env"].compute_env_id,
     }

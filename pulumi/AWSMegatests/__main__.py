@@ -165,6 +165,10 @@ def main():
             "cpu_env_id": terraform_resources["cpu_env"].compute_env_id,
             "gpu_env_id": terraform_resources["gpu_env"].compute_env_id,
             "arm_env_id": terraform_resources["arm_env"].compute_env_id,
+            "s3_env_id": terraform_resources["s3_env"].compute_env_id,
+            "cpu_ondemand_env_id": terraform_resources["cpu_ondemand_env"].compute_env_id,
+            "gpu_ondemand_env_id": terraform_resources["gpu_ondemand_env"].compute_env_id,
+            "s3_ondemand_env_id": terraform_resources["s3_ondemand_env"].compute_env_id,
             "deployment_method": "seqera-terraform-provider",
         },
     )
