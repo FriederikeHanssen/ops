@@ -1,0 +1,84 @@
+launch:
+  # CPU Fusion Spot
+  - name: "nf-canary-cpu-fusion-spot"
+    workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
+    compute-env: "aws_ireland_fusionv2_nvme_cpu_spot"
+    pipeline: "https://github.com/seqeralabs/nf-canary"
+    revision: "0.2.0"
+    work-dir: "s3://nf-core-awsmegatests/work/canary"
+    params:
+      outdir: "s3://nf-core-awsmegatests/results/canary/cpu-fusion-spot"
+      fusion: true
+
+
+  # CPU Fusion On-demand
+  - name: "nf-canary-cpu-fusion-ondemand"
+    workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
+    compute-env: "aws_ireland_fusionv2_nvme_cpu_ondemand"
+    pipeline: "https://github.com/seqeralabs/nf-canary"
+    revision: "0.2.0"
+    work-dir: "s3://nf-core-awsmegatests/work/canary"
+    params:
+      outdir: "s3://nf-core-awsmegatests/results/canary/cpu-fusion-ondemand"
+      fusion: true
+
+
+  # ARM Fusion Spot (no on-demand fallback: Graviton requires Fargate which is SPOT-only)
+  - name: "nf-canary-arm-fusion-spot"
+    workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
+    compute-env: "aws_ireland_fusionv2_nvme_cpu_ARM_spot"
+    pipeline: "https://github.com/seqeralabs/nf-canary"
+    revision: "0.2.0"
+    work-dir: "s3://nf-core-awsmegatests/work/canary"
+    params:
+      outdir: "s3://nf-core-awsmegatests/results/canary/arm-fusion-spot"
+      fusion: true
+
+
+  # GPU Fusion Spot
+  - name: "nf-canary-gpu-fusion-spot"
+    workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
+    compute-env: "aws_ireland_fusionv2_nvme_gpu_spot"
+    pipeline: "https://github.com/seqeralabs/nf-canary"
+    revision: "0.2.0"
+    work-dir: "s3://nf-core-awsmegatests/work/canary"
+    params:
+      outdir: "s3://nf-core-awsmegatests/results/canary/gpu-fusion-spot"
+      fusion: true
+      gpu: true
+
+
+  # GPU Fusion On-demand
+  - name: "nf-canary-gpu-fusion-ondemand"
+    workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
+    compute-env: "aws_ireland_fusionv2_nvme_gpu_ondemand"
+    pipeline: "https://github.com/seqeralabs/nf-canary"
+    revision: "0.2.0"
+    work-dir: "s3://nf-core-awsmegatests/work/canary"
+    params:
+      outdir: "s3://nf-core-awsmegatests/results/canary/gpu-fusion-ondemand"
+      fusion: true
+      gpu: true
+
+
+  # S3 (no Fusion) Spot
+  - name: "nf-canary-s3-spot"
+    workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
+    compute-env: "aws_ireland_s3_cpu_spot"
+    pipeline: "https://github.com/seqeralabs/nf-canary"
+    revision: "0.2.0"
+    work-dir: "s3://nf-core-awsmegatests/work/canary"
+    params:
+      outdir: "s3://nf-core-awsmegatests/results/canary/s3-spot"
+
+
+  # S3 (no Fusion) On-demand
+  - name: "nf-canary-s3-ondemand"
+    workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
+    compute-env: "aws_ireland_s3_cpu_ondemand"
+    pipeline: "https://github.com/seqeralabs/nf-canary"
+    revision: "0.2.0"
+    work-dir: "s3://nf-core-awsmegatests/work/canary"
+    params:
+      outdir: "s3://nf-core-awsmegatests/results/canary/s3-ondemand"
+

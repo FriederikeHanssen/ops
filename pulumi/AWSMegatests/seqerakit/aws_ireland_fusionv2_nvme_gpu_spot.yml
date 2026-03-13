@@ -1,5 +1,5 @@
 compute-envs:
-  - name: "aws_ireland_fusionv2_nvme_gpu_snapshots"
+  - name: "aws_ireland_fusionv2_nvme_gpu_spot"
     workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
     credentials: "$AWS_CREDENTIALS_NAME"
     wait: "AVAILABLE"

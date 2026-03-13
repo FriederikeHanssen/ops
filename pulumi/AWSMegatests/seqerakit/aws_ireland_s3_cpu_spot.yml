@@ -1,5 +1,5 @@
 compute-envs:
-  - name: "aws_ireland_s3_cpu"
+  - name: "aws_ireland_s3_cpu_spot"
     workspace: "$ORGANIZATION_NAME/$WORKSPACE_NAME"
     credentials: "$AWS_CREDENTIALS_NAME"
     wait: "AVAILABLE"

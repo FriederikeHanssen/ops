@@ -22,7 +22,7 @@
       "s3://annotation-cache/"
     ],
     "efsCreate": false,
-    "fargateHeadEnabled": true,
+    "fargateHeadEnabled": false,
     "arm64Enabled": false
   },
   "labels": []
