@@ -30,5 +30,6 @@
     "efsCreate": false,
     "dragenEnabled": false
   },
-  "labels": []
+  "labels": [],
+  "nextflowConfig": "// Base Nextflow configuration for AWS Batch compute environments\n// This configuration is shared across all compute environment types\n\naws.batch.maxSpotAttempts = 5\n\nprocess {\n    maxRetries = 2\n    errorStrategy = { task.exitStatus in ((130..145) + 104 + 175) ? 'retry' : 'terminate' }\n}\n\nfusion {\n    tags = '[.command.*|.exitcode|.fusion.*](nextflow.io/metadata=true),[*](nextflow.io/temporary=true)'\n}\n// Nextflow configuration for GPU on-demand fallback compute environments\n// Includes base configuration and GPU-specific settings"
 }
