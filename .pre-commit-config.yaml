@@ -22,6 +22,7 @@ repos:
     rev: "v1.19.1"
     hooks:
       - id: mypy
+        exclude: '.*/__main__\.py$'
         additional_dependencies:
           - types-PyYAML
           - types-requests
