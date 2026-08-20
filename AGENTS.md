@@ -31,3 +31,11 @@ Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `
 ### Domain docs
 
 Single-context: one root `CONTEXT.md` plus `docs/adr/`. See `docs/agents/domain.md`.
+
+### Renovate
+
+The shared Renovate preset lives in the public `nf-core/.github` repo, not here. Don't reference `nf-core/ops` from a preset. See `docs/agents/renovate.md`.
+
+### GitHub permissions
+
+Who can open PRs and merge, for this repo and `nf-core/.github`. See `docs/github-permissions.md`.
