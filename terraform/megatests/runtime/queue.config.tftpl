@@ -1,0 +1,10 @@
+// Preserve the existing execution-retry policy; both queue branches are explicit.
+aws.batch.maxSpotAttempts = 5
+process {
+    maxRetries = 2
+    errorStrategy = { task.exitStatus in ((130..145) + 104 + 175) ? 'retry' : 'terminate' }
+    queue = { task.attempt > 1 ? '${ondemand_queue}' : '${spot_queue}' }
+}
+fusion {
+    tags = '[.command.*|.exitcode|.fusion.*](nextflow.io/metadata=true),[*](nextflow.io/temporary=true)'
+}

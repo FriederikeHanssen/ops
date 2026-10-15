@@ -5,13 +5,17 @@ terraform {
       source  = "hashicorp/aws"
       version = "= 6.69.0"
     }
+    seqera = {
+      source  = "seqeralabs/seqera"
+      version = "= 0.42.0"
+    }
   }
   backend "s3" {
     use_lockfile = true
   }
 }
-
 provider "aws" {
-  region              = var.region
-  allowed_account_ids = [var.account_id]
+  region              = var.deployment.region
+  allowed_account_ids = [var.deployment.account_id]
 }
+provider "seqera" {}

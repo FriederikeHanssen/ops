@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""Wait for Forge and export its actual AWS identifiers for the runtime root."""
+
+import argparse
+import json
+import os
+import re
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+
+def fetch(endpoint, workspace_id, ce_id, token):
+    path = f"/compute-envs/{urllib.parse.quote(ce_id, safe='')}"
+    query = urllib.parse.urlencode({"workspaceId": workspace_id})
+    request = urllib.request.Request(
+        f"{endpoint.rstrip('/')}{path}?{query}",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.load(response)["computeEnv"]
+
+
+def extract(deployment, kind, ce):
+    expected = deployment["carriers"][kind]
+    config = ce["config"]
+    forge = config["forge"]
+    if (
+        ce["id"] != expected["id"]
+        or ce["name"] != expected["name"]
+        or str(ce["workspaceId"]) != deployment["workspace_id"]
+        or ce["credentialsId"] != deployment["credentials_id"]
+        or config["region"] != deployment["region"]
+        or config["workDir"] != deployment["work_dir"]
+        or forge["type"] != {"spot": "SPOT", "ondemand": "EC2"}[kind]
+        or forge.get("fargateHeadEnabled", False)
+        or not config.get("waveEnabled")
+        or not config.get("fusion2Enabled")
+        or not config.get("nvnmeStorageEnabled")
+        or forge.get("gpuEnabled", False)
+        or forge.get("arm64Enabled", False)
+        or set(forge["instanceTypes"]) != {"c6id", "m6id", "r6id"}
+    ):
+        raise ValueError(f"Unexpected CPU Fusion Forge definition for {kind}")
+    queue_name = config["computeQueue"]
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", queue_name):
+        raise ValueError("Forge did not return a usable compute queue name")
+    queues = [
+        resource["BatchQueue"]
+        for resource in config["forgedResources"]
+        if "BatchQueue" in resource
+    ]
+    arn = f"arn:aws:batch:{deployment['region']}:{deployment['account_id']}:job-queue/{queue_name}"
+    # This is a consistency check against returned ARNs, not a guessed queue name.
+    if arn not in queues:
+        raise ValueError(
+            "Forge queue ARN does not match the expected account and region"
+        )
+    if kind == "ondemand":
+        return {
+            "queue_name": queue_name,
+            "queue_arn": arn,
+            "ce_id": ce["id"],
+            "ce_name": ce["name"],
+        }
+    head_queue = config["headQueue"]
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", head_queue):
+        raise ValueError("Forge did not return a usable EC2 head queue")
+    return {
+        "queue_name": queue_name,
+        "queue_arn": arn,
+        "head_queue": head_queue,
+        "execution_role": config["executionRole"],
+        "head_job_role": config.get("headJobRole"),
+    }
+
+
+def wait_available(read, deadline, pause=time.sleep, clock=time.monotonic):
+    while True:
+        ce = read()
+        status = ce.get("status")
+        if status == "AVAILABLE":
+            return ce
+        if status in {"ERROR", "INVALID", "DELETED"}:
+            raise ValueError(
+                f"Compute environment is {status}; inspect its Platform creation log"
+            )
+        if clock() >= deadline:
+            raise TimeoutError("Timed out waiting for the compute environment")
+        pause(15)
+
+
+def discover(deployment, read, timeout=1800, pause=time.sleep, clock=time.monotonic):
+    deadline = clock() + timeout
+    result = {key: value for key, value in deployment.items() if key != "carriers"}
+    for kind in ("spot", "ondemand"):
+        ce = wait_available(
+            lambda: read(deployment["carriers"][kind]["id"]), deadline, pause, clock
+        )
+        result[kind] = extract(deployment, kind, ce)
+    if result["spot"]["queue_name"] == result["ondemand"]["queue_name"]:
+        raise ValueError("Spot and On-Demand queues must differ")
+    return {"deployment": result}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", required=True, type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--runtime", action="store_true")
+    args = parser.parse_args()
+    deployment = json.loads(args.input.read_text())
+    endpoint = os.environ.get("TOWER_API_ENDPOINT", "https://api.cloud.seqera.io")
+    if urllib.parse.urlsplit(endpoint).scheme != "https":
+        raise ValueError("Platform endpoint must use HTTPS")
+    token = os.environ["TOWER_ACCESS_TOKEN"]
+    if args.runtime:
+        wait_available(
+            lambda: fetch(
+                endpoint, deployment["workspace_id"], deployment["spot_ce_id"], token
+            ),
+            time.monotonic() + 900,
+        )
+        print("Manual CPU Fusion CE is ready.")
+        return
+    if args.output is None:
+        parser.error("--output is required for Forge discovery")
+    payload = discover(
+        deployment,
+        lambda ce_id: fetch(endpoint, deployment["workspace_id"], ce_id, token),
+    )
+    args.output.write_text(json.dumps(payload, indent=2) + "\n")
+    args.output.chmod(0o600)
+    print("Forge CPU Fusion queues are ready; runtime inputs written.")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except urllib.error.HTTPError as error:
+        # Do not dump API bodies/headers, which may contain private metadata.
+        raise SystemExit(f"Platform discovery failed with HTTP {error.code}") from None

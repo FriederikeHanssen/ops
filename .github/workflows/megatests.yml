@@ -1,0 +1,145 @@
+name: CPU Fusion megatests setup
+
+on:
+  pull_request:
+    paths:
+      - "terraform/megatests/**"
+      - ".github/workflows/megatests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "terraform/megatests/**"
+      - ".github/workflows/megatests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One persistent setup; do not interrupt an apply with a newer merge.
+concurrency:
+  group: cpu-fusion-megatests-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'deploy' }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.14.5"
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive terraform/megatests
+      - run: python3 -m unittest discover -s terraform/megatests/tests
+      - name: Validate both roots without cloud credentials
+        run: |
+          for root in forge runtime; do
+            terraform -chdir="terraform/megatests/$root" init -backend=false -lockfile=readonly
+            terraform -chdir="terraform/megatests/$root" validate
+            terraform -chdir="terraform/megatests/$root" test -no-color
+          done
+
+  deploy:
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: megatests-test
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TF_IN_AUTOMATION: "true"
+      TOWER_ACCESS_TOKEN: ${{ secrets.MEGATESTS_SEQERA_TOKEN }}
+      TOWER_API_ENDPOINT: https://api.cloud.seqera.io
+      TF_VAR_workspace_id: ${{ vars.MEGATESTS_WORKSPACE_ID }}
+      TF_VAR_credentials_id: ${{ vars.MEGATESTS_CREDENTIALS_ID }}
+      TF_VAR_account_id: ${{ vars.MEGATESTS_AWS_ACCOUNT_ID }}
+      STATE_BUCKET: ${{ vars.MEGATESTS_STATE_BUCKET }}
+      STATE_REGION: ${{ vars.MEGATESTS_STATE_REGION }}
+      STATE_PREFIX: ${{ vars.MEGATESTS_STATE_PREFIX }}
+      AWS_ROLE_ARN: ${{ vars.MEGATESTS_AWS_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Check final bootstrap configuration
+        shell: bash
+        run: |
+          for name in TOWER_ACCESS_TOKEN TF_VAR_workspace_id TF_VAR_credentials_id TF_VAR_account_id STATE_BUCKET STATE_REGION STATE_PREFIX AWS_ROLE_ARN; do
+            if [[ -z "${!name}" ]]; then echo "Missing configuration: $name" >&2; exit 1; fi
+          done
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.14.5"
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0; reference nightly workflow
+        with:
+          aws-region: eu-west-1
+          role-to-assume: ${{ vars.MEGATESTS_AWS_ROLE_ARN }}
+      - name: Create or reconcile Forge CPU Fusion infrastructure
+        working-directory: terraform/megatests/forge
+        run: |
+          terraform init -input=false -lockfile=readonly \
+            -backend-config="bucket=$STATE_BUCKET" \
+            -backend-config="region=$STATE_REGION" \
+            -backend-config="key=$STATE_PREFIX/forge.tfstate"
+          terraform apply -input=false -auto-approve
+          terraform output -json deployment > "$RUNNER_TEMP/forge.json"
+      - name: Wait for Forge and discover actual queue names
+        run: |
+          python3 terraform/megatests/scripts/discover_queues.py \
+            --input "$RUNNER_TEMP/forge.json" \
+            --output terraform/megatests/runtime/deployment.auto.tfvars.json
+      - name: Create or reconcile the native queue and manual CE
+        working-directory: terraform/megatests/runtime
+        run: |
+          terraform init -input=false -lockfile=readonly \
+            -backend-config="bucket=$STATE_BUCKET" \
+            -backend-config="region=$STATE_REGION" \
+            -backend-config="key=$STATE_PREFIX/runtime.tfstate"
+          terraform apply -input=false -auto-approve
+          terraform output -json deployment > "$RUNNER_TEMP/deployment.json"
+      - name: Wait for the manual CE
+        run: |
+          python3 terraform/megatests/scripts/discover_queues.py \
+            --input "$RUNNER_TEMP/deployment.json" --runtime
+      - name: Check post-apply plan stability
+        run: |
+          terraform -chdir=terraform/megatests/forge plan -input=false -detailed-exitcode -no-color
+          terraform -chdir=terraform/megatests/runtime plan -input=false -detailed-exitcode -no-color
+      # Enable after the first successful stand-up. No automatic teardown.
+      - name: Check out nf-seqerakit for canary launches
+        if: vars.MEGATESTS_RUN_CANARY == 'true'
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          repository: seqeralabs/nf-seqerakit
+          ref: 92df303e4842b8816ecda1b7ab7abdb6ff70b9d1
+          token: ${{ secrets.MEGATESTS_GITHUB_TOKEN }}
+          path: nf-seqerakit
+      - name: Set up Nextflow for canary launches
+        if: vars.MEGATESTS_RUN_CANARY == 'true'
+        uses: nf-core/setup-nextflow@2337acd9b14833d5d867ffd71cb178832ab688c8 # reference nightly workflow
+        with:
+          version: "25.10.2"
+      - name: Launch nf-canary on Spot and On-Demand and wait
+        if: vars.MEGATESTS_RUN_CANARY == 'true'
+        env:
+          NXF_HOME: ${{ runner.temp }}/nextflow
+        run: |
+          nextflow secrets set TARGET_ACCESS_TOKEN "$TOWER_ACCESS_TOKEN"
+          python3 terraform/megatests/scripts/prepare_canary.py \
+            --input "$RUNNER_TEMP/deployment.json" \
+            --output "$RUNNER_TEMP/canary/launch/nf-canary.yml" \
+            --run-id "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          nextflow run nf-seqerakit/main.nf \
+            --input "$RUNNER_TEMP/canary" \
+            --seqerakit_target_entities launch \
+            --seqera_api_endpoint "$TOWER_API_ENDPOINT" \
+            --outdir "$RUNNER_TEMP/canary-results" \
+            -work-dir "$RUNNER_TEMP/canary-work" \
+            --seqera_api_polling_interval 30s \
+            --wait_launch_completion \
+            --skip_seqera_runs_dump \
+            -profile docker
+          python3 terraform/megatests/scripts/check_canary.py \
+            --work-dir "$RUNNER_TEMP/canary-work" \
+            --run-id "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
