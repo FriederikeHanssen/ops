@@ -14,12 +14,21 @@ resource "seqera_aws_batch_ce" "carrier" {
     enable_wave          = true
     enable_fusion        = true
     nvme_storage_enabled = true
-    fusion_snapshots     = false
+    fusion_snapshots     = each.key == "spot"
     forge = {
-      type                 = each.value
-      min_cpus             = 0
-      max_cpus             = 1000
-      instance_types       = ["c6id", "m6id", "r6id"]
+      type     = each.value
+      min_cpus = 0
+      max_cpus = 1000
+      # Use Seqera's snapshot-compatible sizes, not unrestricted families.
+      # https://docs.seqera.io/fusion/guide/snapshots/aws#selecting-an-ec2-instance
+      instance_types = [
+        "c6id.4xlarge",
+        "c6id.8xlarge",
+        "c6id.12xlarge",
+        "m6id.4xlarge",
+        "m6id.8xlarge",
+        "r6id.2xlarge",
+      ]
       gpu_enabled          = false
       arm64_enabled        = false
       fargate_head_enabled = false

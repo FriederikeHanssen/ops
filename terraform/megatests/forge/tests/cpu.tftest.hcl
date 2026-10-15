@@ -11,13 +11,17 @@ run "cpu_fusion_ec2_heads" {
       ce.config.enable_fusion && ce.config.enable_wave && ce.config.nvme_storage_enabled &&
       !ce.config.forge.fargate_head_enabled && !ce.config.forge.gpu_enabled &&
       !ce.config.forge.arm64_enabled && ce.config.forge.min_cpus == 0 &&
-      ce.config.forge.max_cpus == 1000 && !ce.config.fusion_snapshots
+      ce.config.forge.max_cpus == 1000
     ])
-    error_message = "First rollout must be CPU Fusion/NVMe with EC2 heads and no GPU/ARM/Snapshots."
+    error_message = "First rollout must be CPU Fusion/NVMe with EC2 heads and no GPU/ARM."
   }
   assert {
     condition     = seqera_aws_batch_ce.carrier["spot"].config.forge.type == "SPOT" && seqera_aws_batch_ce.carrier["ondemand"].config.forge.type == "EC2"
     error_message = "Both capacity types are needed for fallback."
+  }
+  assert {
+    condition     = seqera_aws_batch_ce.carrier["spot"].config.fusion_snapshots && !seqera_aws_batch_ce.carrier["ondemand"].config.fusion_snapshots
+    error_message = "Enable snapshots on Spot only; On-Demand must keep snapshots disabled."
   }
   assert {
     condition     = seqera_aws_batch_ce.carrier["spot"].name == "nf-core-test-cpu-fusion-spot-forge" && seqera_aws_batch_ce.carrier["ondemand"].name == "nf-core-test-cpu-fusion-ondemand-forge"

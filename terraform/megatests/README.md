@@ -6,7 +6,15 @@ First setup for [#216](https://github.com/nf-core/ops/issues/216), including the
 2. `nf-core-test-cpu-fusion-ondemand-forge` — Forge On-Demand infrastructure.
 3. `nf-core-test-cpu-fusion` — manual CE using the actual Spot and On-Demand queues, plus the Forge EC2 head queue and role.
 
-CPU x86 only: Wave, Fusion v2, NVMe, EC2 heads, `c6id,m6id,r6id`, min/max vCPUs 0/1000. Fusion Snapshots are disabled. Existing production CEs stay outside this setup. S3-only, GPU, ARM and nf-canary are deferred.
+CPU x86 only: Wave, Fusion v2, NVMe, EC2 heads, min/max vCPUs 0/1000. Both Forge CEs use the explicit [Seqera snapshot-compatible instance sizes](https://docs.seqera.io/fusion/guide/snapshots/aws#selecting-an-ec2-instance):
+
+```text
+c6id.4xlarge,c6id.8xlarge,c6id.12xlarge,m6id.4xlarge,m6id.8xlarge,r6id.2xlarge
+```
+
+Unrestricted family names would also permit sizes outside that recommendation. Seqera cautions that `m6id.8xlarge` may miss the snapshot window when using most of its 128 GiB memory; validate checkpoint timing before relying on snapshots for such tasks. Seqera Cloud supplies the ECS-optimized AMI by default, so no region-specific AMI ID is pinned here.
+
+Fusion Snapshots use the native `fusion_snapshots` setting: enabled on the Spot Forge CE and the manual launch CE, disabled on the On-Demand Forge CE. The [manual CE setup guide](https://docs.seqera.io/platform-cloud/compute-envs/aws-batch#seqera-manual-compute-environment) includes the Snapshot toggle; the pinned provider requires Fusion to be enabled and permits this manual configuration. Snapshot/restore behavior on Spot and fallback still needs a live test. Existing production CEs stay outside this setup. S3-only, GPU, ARM and nf-canary are deferred.
 
 ## Workflow
 

@@ -21,6 +21,10 @@ variables {
 run "explicit_manual_routing" {
   command = plan
   assert {
+    condition     = seqera_aws_batch_ce.cpu_fusion.config.fusion_snapshots && seqera_aws_batch_ce.cpu_fusion.config.enable_fusion
+    error_message = "The manual Spot launch CE must enable Fusion Snapshots, not only its Forge carrier."
+  }
+  assert {
     condition     = seqera_aws_batch_ce.cpu_fusion.config.compute_queue == "actual-forge-spot" && seqera_aws_batch_ce.cpu_fusion.config.head_queue == "actual-ec2-head"
     error_message = "Manual CE must consume the actual Forge compute and EC2 head queue names."
   }

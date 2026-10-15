@@ -13,7 +13,7 @@ resource "seqera_aws_batch_ce" "cpu_fusion" {
     enable_wave          = true
     enable_fusion        = true
     nvme_storage_enabled = true
-    fusion_snapshots     = false
+    fusion_snapshots     = true
     nextflow_config = templatefile("${path.module}/queue.config.tftpl", {
       spot_queue     = var.deployment.spot.queue_name
       ondemand_queue = var.deployment.ondemand.queue_name
