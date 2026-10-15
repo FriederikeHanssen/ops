@@ -1,0 +1,33 @@
+name: AWS Batch queue configuration
+
+on:
+  pull_request:
+    paths:
+      - "terraform/aws-batch-queues/**"
+      - ".github/workflows/aws-batch-queues.yml"
+  push:
+    branches: [main]
+    paths:
+      - "terraform/aws-batch-queues/**"
+      - ".github/workflows/aws-batch-queues.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/aws-batch-queues
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.14.5"
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -lockfile=readonly
+      - run: terraform validate
+      # Mock AWS, plan commands only; no credentials or apply job.
+      - run: terraform test -no-color

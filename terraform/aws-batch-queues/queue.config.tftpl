@@ -1,0 +1,3 @@
+// Explicit names; retains the existing task.attempt fallback boundary.
+// Compose with the approved base policy. This fragment does not enable retries.
+process.queue = { task.attempt > 1 ? '${ondemand_queue}' : '${spot_queue}' }
