@@ -37,13 +37,13 @@ run "teams_receive_the_intended_workspace_roles" {
   }
 
   assert {
-    condition     = toset(keys(seqera_teams.managed)) == toset(["core", "pipeline-maintainers", "view"]) && seqera_teams.managed["view"].name == "viewers"
-    error_message = "The module must manage the three access teams."
+    condition     = toset(keys(seqera_teams.managed)) == toset(["pipeline-maintainers", "view"]) && seqera_teams.managed["view"].name == "viewers"
+    error_message = "The module must manage only the pipeline-maintainers and viewers teams."
   }
 
   assert {
-    condition     = seqera_workspace_participant.managed["core"].role == "admin"
-    error_message = "Core must receive workspace admin."
+    condition     = !contains(keys(seqera_workspace_participant.managed), "core")
+    error_message = "Existing core access must remain outside this Terraform scope."
   }
 
   assert {

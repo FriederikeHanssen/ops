@@ -61,7 +61,6 @@ resource "seqera_custom_role" "view" {
 
 locals {
   team_roles = {
-    core                 = "admin"
     pipeline-maintainers = seqera_custom_role.pipeline_maintainers.name
     view                 = seqera_custom_role.view.name
   }

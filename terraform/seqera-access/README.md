@@ -1,15 +1,17 @@
 # Seqera workspace roles and teams
 
-This Terraform root creates two organization custom roles, three initially empty
+This Terraform root creates two organization custom roles, two initially empty
 teams, and a team grant for each team in one existing workspace. Team membership
 is managed separately by administrators. This root does not manage the workspace
 itself, add organization members, or manage direct user grants.
 
 | Team                   | Workspace role                 | Intended access                                    |
 | ---------------------- | ------------------------------ | -------------------------------------------------- |
-| `core`                 | `admin`                        | Workspace administration                           |
 | `pipeline-maintainers` | `nf-core-pipeline-maintainers` | Launch workflows and create or configure pipelines |
 | `viewers`              | `nf-core-read-only`            | Read workspace pipelines and workflow information  |
+
+The existing `core` team and its access are managed separately and are outside
+this root's scope.
 
 The two custom roles are organization-level Seqera roles, even though this
 configuration grants them to teams in one workspace. Before adopting an
@@ -74,9 +76,9 @@ placeholder with an administrator-verified numeric ID. These are the import
 formats for provider `0.42.0`:
 
 ```sh
-terraform import 'seqera_teams.managed["core"]' '{"org_id":ORG_ID,"team_id":TEAM_ID}'
+terraform import 'seqera_teams.managed["pipeline-maintainers"]' '{"org_id":ORG_ID,"team_id":TEAM_ID}'
 terraform import 'seqera_custom_role.view' '{"name":"nf-core-read-only","org_id":ORG_ID}'
-terraform import 'seqera_workspace_participant.managed["core"]' 'ORG_ID/WORKSPACE_ID/team:TEAM_ID'
+terraform import 'seqera_workspace_participant.managed["pipeline-maintainers"]' 'ORG_ID/WORKSPACE_ID/team:TEAM_ID'
 ```
 
 Importing a custom role adopts its organization-wide definition. Confirm its
