@@ -1,0 +1,7 @@
+{
+  "teams": {
+    "core": ["alice"],
+    "pipeline-maintainers": ["alias"],
+    "view": []
+  }
+}

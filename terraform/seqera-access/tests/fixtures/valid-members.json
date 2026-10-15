@@ -1,0 +1,7 @@
+{
+  "teams": {
+    "core": ["alice"],
+    "pipeline-maintainers": ["bob"],
+    "view": ["carol"]
+  }
+}
