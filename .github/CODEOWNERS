@@ -1,5 +1,3 @@
 * @edmundmiller @maxulysse @nf-core/infrastructure
 
-# Seqera access membership and automation require infrastructure owner review.
 /terraform/seqera-access/ @nf-core/infrastructure
-/.github/workflows/seqera-access.yml @nf-core/infrastructure

@@ -1,13 +1,10 @@
 # Seqera access Terraform state and saved plans are private operational data.
 terraform/seqera-access/.terraform/
-terraform/seqera-access/**/__pycache__/
 terraform/seqera-access/terraform.tfstate
 terraform/seqera-access/terraform.tfstate.*
 terraform/seqera-access/*.tfplan
 terraform/seqera-access/*.tfvars
 terraform/seqera-access/*.tfvars.json
-terraform/seqera-access/*.auto.tfvars
-terraform/seqera-access/*.auto.tfvars.json
 terraform/seqera-access/*.plan.json
 terraform/seqera-access/crash.log
 terraform/seqera-access/crash.*.log

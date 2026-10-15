@@ -8,12 +8,6 @@ terraform {
     }
   }
 
-  # CI supplies the bucket, key, region, and AWS OIDC role. State contains
-  # Seqera IDs and must remain in the private CI-managed state bucket.
-  backend "s3" {
-    encrypt      = true
-    use_lockfile = true
-  }
 }
 
 provider "seqera" {}
