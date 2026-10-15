@@ -26,9 +26,24 @@ token and target IDs through the environment:
 
 ```sh
 export TOWER_ACCESS_TOKEN="..."
+export TOWER_WORKSPACE_ID="..."
+export TF_VAR_workspace_id="$TOWER_WORKSPACE_ID"
 export TF_VAR_org_id="..."
-export TF_VAR_workspace_id="..."
 ```
+
+Reuse the existing `TOWER_ACCESS_TOKEN` and `TOWER_WORKSPACE_ID` GitHub secrets
+for any future real plan/apply job:
+
+```yaml
+env:
+  TOWER_ACCESS_TOKEN: ${{ secrets.TOWER_ACCESS_TOKEN }}
+  TF_VAR_workspace_id: ${{ secrets.TOWER_WORKSPACE_ID }}
+```
+
+The organization ID is still required as `TF_VAR_org_id`; it can be a normal
+configuration value. Organization secrets must be shared with this repository.
+The current validation-only workflow needs no secrets. For a local run, load the
+same token and workspace ID locally: GitHub cannot return stored secret values.
 
 Terraform uses local state by default. For shared operation, configure an
 appropriate remote backend separately. State contains organization and
