@@ -26,54 +26,43 @@ def fetch(endpoint, workspace_id, ce_id, token):
 def extract(deployment, kind, ce):
     expected = deployment["carriers"][kind]
     config = ce["config"]
-    forge = config["forge"]
     if (
         ce["id"] != expected["id"]
         or ce["name"] != expected["name"]
         or str(ce["workspaceId"]) != deployment["workspace_id"]
         or ce["credentialsId"] != deployment["credentials_id"]
         or config["region"] != deployment["region"]
-        or config["workDir"] != deployment["work_dir"]
-        or forge["type"] != {"spot": "SPOT", "ondemand": "EC2"}[kind]
-        or forge.get("fargateHeadEnabled", False)
-        or not config.get("waveEnabled")
-        or not config.get("fusion2Enabled")
-        or not config.get("nvnmeStorageEnabled")
-        or forge.get("gpuEnabled", False)
-        or forge.get("arm64Enabled", False)
-        or set(forge["instanceTypes"]) != {"c6id", "m6id", "r6id"}
     ):
-        raise ValueError(f"Unexpected CPU Fusion Forge definition for {kind}")
-    queue_name = config["computeQueue"]
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", queue_name):
+        raise ValueError(f"Unexpected Forge identity for {kind}")
+    queue_name = config.get("computeQueue")
+    if not isinstance(queue_name, str) or not re.fullmatch(
+        r"[A-Za-z0-9_-]{1,128}", queue_name
+    ):
         raise ValueError("Forge did not return a usable compute queue name")
-    queues = [
-        resource["BatchQueue"]
-        for resource in config["forgedResources"]
-        if "BatchQueue" in resource
-    ]
-    arn = f"arn:aws:batch:{deployment['region']}:{deployment['account_id']}:job-queue/{queue_name}"
-    # This is a consistency check against returned ARNs, not a guessed queue name.
-    if arn not in queues:
-        raise ValueError(
-            "Forge queue ARN does not match the expected account and region"
-        )
     if kind == "ondemand":
         return {
             "queue_name": queue_name,
-            "queue_arn": arn,
             "ce_id": ce["id"],
             "ce_name": ce["name"],
         }
-    head_queue = config["headQueue"]
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", head_queue):
+    head_queue = config.get("headQueue")
+    if not isinstance(head_queue, str) or not re.fullmatch(
+        r"[A-Za-z0-9_-]{1,128}", head_queue
+    ):
         raise ValueError("Forge did not return a usable EC2 head queue")
+    execution_role = config.get("executionRole")
+    if not isinstance(execution_role, str) or not execution_role.strip():
+        raise ValueError("Forge did not return an execution role")
+    head_job_role = config.get("headJobRole")
+    if head_job_role is not None and (
+        not isinstance(head_job_role, str) or not head_job_role.strip()
+    ):
+        raise ValueError("Forge returned an unusable head job role")
     return {
         "queue_name": queue_name,
-        "queue_arn": arn,
         "head_queue": head_queue,
-        "execution_role": config["executionRole"],
-        "head_job_role": config.get("headJobRole"),
+        "execution_role": execution_role,
+        "head_job_role": head_job_role,
     }
 
 

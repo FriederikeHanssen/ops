@@ -2,7 +2,6 @@ mock_provider "seqera" {}
 variables {
   workspace_id   = "123"
   credentials_id = "test-credential"
-  account_id     = "123456789012"
 }
 run "cpu_fusion_ec2_heads" {
   command = plan

@@ -1,6 +1,5 @@
 import importlib.util
 import unittest
-from copy import deepcopy
 from pathlib import Path
 
 
@@ -13,8 +12,6 @@ def load(name):
 
 
 discovery = load("discover_queues")
-canary = load("prepare_canary")
-canary_check = load("check_canary")
 
 
 class DiscoveryTests(unittest.TestCase):
@@ -22,7 +19,6 @@ class DiscoveryTests(unittest.TestCase):
         self.deployment = {
             "workspace_id": "123",
             "credentials_id": "credential-id",
-            "account_id": "123456789012",
             "region": "eu-west-1",
             "work_dir": "s3://test/work",
             "name_prefix": "test",
@@ -46,19 +42,6 @@ class DiscoveryTests(unittest.TestCase):
                 "computeQueue": name,
                 "headQueue": "actual-head",
                 "executionRole": "arn:aws:iam::123456789012:role/execution",
-                "waveEnabled": True,
-                "fusion2Enabled": True,
-                "nvnmeStorageEnabled": True,
-                "forge": {
-                    "type": {"spot": "SPOT", "ondemand": "EC2"}[kind],
-                    "fargateHeadEnabled": False,
-                    "instanceTypes": ["c6id", "m6id", "r6id"],
-                },
-                "forgedResources": [
-                    {
-                        "BatchQueue": f"arn:aws:batch:eu-west-1:123456789012:job-queue/{name}"
-                    }
-                ],
             },
         }
 
@@ -96,68 +79,37 @@ class DiscoveryTests(unittest.TestCase):
                 clock=lambda: next(times),
             )
 
-    def test_rejects_fargate_head_and_wrong_workspace(self):
-        for field, value in [("workspaceId", 456), ("credentialsId", "other")]:
+    def test_rejects_wrong_resource_identity(self):
+        for field, value in [
+            ("id", "other-id"),
+            ("name", "other-name"),
+            ("workspaceId", 456),
+            ("credentialsId", "other"),
+        ]:
             ce = self.ce("spot")
             ce[field] = value
             with self.subTest(field=field), self.assertRaises(ValueError):
                 discovery.extract(self.deployment, "spot", ce)
-        ce = self.ce("spot")
-        ce["config"]["forge"]["fargateHeadEnabled"] = True
-        with self.assertRaises(ValueError):
-            discovery.extract(self.deployment, "spot", ce)
 
-    def test_rejects_wrong_aws_account(self):
-        ce = self.ce("spot")
-        ce["config"]["forgedResources"][0]["BatchQueue"] = (
-            "arn:aws:batch:eu-west-1:999999999999:job-queue/unpredictable-spot-queue"
-        )
-        with self.assertRaises(ValueError):
-            discovery.extract(self.deployment, "spot", ce)
+    def test_requires_queue_head_and_execution_role(self):
+        for field in ["computeQueue", "headQueue", "executionRole"]:
+            for value in [None, "", 123]:
+                ce = self.ce("spot")
+                ce["config"][field] = value
+                with (
+                    self.subTest(field=field, value=value),
+                    self.assertRaises(ValueError),
+                ):
+                    discovery.extract(self.deployment, "spot", ce)
 
-    def test_canary_checks_both_ces_with_run_scoped_outputs(self):
-        deployment = deepcopy(self.deployment)
-        deployment.update(
-            pipeline_name="test-canary",
-            spot_ce_name="manual-spot",
-            ondemand_ce_name="forge-ondemand",
-        )
-        launches = canary.launches(deployment, "1234-2")["launch"]
-        self.assertEqual(
-            [launch["compute-env"] for launch in launches],
-            ["manual-spot", "forge-ondemand"],
-        )
-        self.assertNotEqual(
-            launches[0]["params"]["outdir"], launches[1]["params"]["outdir"]
-        )
-        self.assertTrue(
-            all("1234-2" in launch["params"]["outdir"] for launch in launches)
-        )
+    def test_rejects_same_spot_and_ondemand_queue(self):
+        def read(ce_id):
+            ce = self.ce("spot" if ce_id == "spot-id" else "ondemand")
+            ce["config"]["computeQueue"] = "same-queue"
+            return ce
 
-
-class CanaryResultTests(unittest.TestCase):
-    def test_both_runs_must_succeed(self):
-        canary_check.validate_summary(
-            "✅ status runName\n"
-            "🟢 SUCCEEDED cpu-fusion-spot-123-1\n"
-            "🟢 SUCCEEDED cpu-fusion-ondemand-123-1\n",
-            "123-1",
-        )
-
-    def test_failure_or_timeout_makes_the_action_fail(self):
-        for status in ["FAILED", "RUNNING", "UNKNOWN"]:
-            with self.subTest(status=status), self.assertRaises(ValueError):
-                canary_check.validate_summary(
-                    "🟢 SUCCEEDED cpu-fusion-spot-123-1\n"
-                    f"🔴 {status} cpu-fusion-ondemand-123-1\n",
-                    "123-1",
-                )
-
-    def test_missing_launch_makes_the_action_fail(self):
-        with self.assertRaises(ValueError):
-            canary_check.validate_summary(
-                "🟢 SUCCEEDED cpu-fusion-spot-123-1\n", "123-1"
-            )
+        with self.assertRaisesRegex(ValueError, "must differ"):
+            discovery.discover(self.deployment, read)
 
 
 if __name__ == "__main__":

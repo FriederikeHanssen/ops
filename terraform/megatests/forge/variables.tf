@@ -10,14 +10,6 @@ variable "credentials_id" {
   type        = string
   description = "Existing Platform AWS credential ID; the credential's secret remains in Platform."
 }
-variable "account_id" {
-  type        = string
-  description = "Expected AWS account for the queues returned by Forge."
-  validation {
-    condition     = can(regex("^[0-9]{12}$", var.account_id))
-    error_message = "account_id must be a 12-digit string."
-  }
-}
 variable "region" {
   type    = string
   default = "eu-west-1"

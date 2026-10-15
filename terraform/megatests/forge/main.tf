@@ -42,7 +42,6 @@ output "deployment" {
   value = {
     workspace_id   = var.workspace_id
     credentials_id = var.credentials_id
-    account_id     = var.account_id
     region         = var.region
     work_dir       = var.work_dir
     name_prefix    = var.name_prefix
