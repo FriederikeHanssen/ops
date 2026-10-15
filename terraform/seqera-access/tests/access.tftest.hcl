@@ -29,6 +29,14 @@ run "teams_receive_the_intended_workspace_roles" {
   }
 
   assert {
+    condition = alltrue([
+      for name in [seqera_custom_role.pipeline_maintainers.name, seqera_custom_role.view.name] :
+      can(regex("^[a-z][a-z0-9-]*$", name)) && length(name) <= 40
+    ])
+    error_message = "Custom role names must use lowercase slug identifiers, without spaces, and fit within 40 characters."
+  }
+
+  assert {
     condition     = toset(keys(seqera_teams.managed)) == toset(["core", "pipeline-maintainers", "view"])
     error_message = "The module must manage the three access teams."
   }

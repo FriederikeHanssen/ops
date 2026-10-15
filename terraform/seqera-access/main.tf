@@ -33,7 +33,7 @@ data "seqera_permissions" "catalogue" {
 
 resource "seqera_custom_role" "pipeline_maintainers" {
   org_id      = var.org_id
-  name        = "nf-core Pipeline Maintainers"
+  name        = "nf-core-pipeline-maintainers"
   description = "Create and configure Launchpad pipeline entries and launch workflows."
   permissions = sort(tolist(local.pipeline_permissions))
 
@@ -47,7 +47,7 @@ resource "seqera_custom_role" "pipeline_maintainers" {
 
 resource "seqera_custom_role" "view" {
   org_id      = var.org_id
-  name        = "nf-core Read Only"
+  name        = "nf-core-read-only"
   description = "Read-only access to workspace pipelines and workflow information."
   permissions = sort(tolist(local.view_permissions))
 

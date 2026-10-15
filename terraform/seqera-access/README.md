@@ -8,8 +8,8 @@ itself, add organization members, or manage direct user grants.
 | Team                   | Workspace role                 | Intended access                                    |
 | ---------------------- | ------------------------------ | -------------------------------------------------- |
 | `core`                 | `admin`                        | Workspace administration                           |
-| `pipeline-maintainers` | `nf-core Pipeline Maintainers` | Launch workflows and create or configure pipelines |
-| `view`                 | `nf-core Read Only`            | Read workspace pipelines and workflow information  |
+| `pipeline-maintainers` | `nf-core-pipeline-maintainers` | Launch workflows and create or configure pipelines |
+| `view`                 | `nf-core-read-only`            | Read workspace pipelines and workflow information  |
 
 The two custom roles are organization-level Seqera roles, even though this
 configuration grants them to teams in one workspace. Before adopting an
@@ -75,7 +75,7 @@ formats for provider `0.42.0`:
 
 ```sh
 terraform import 'seqera_teams.managed["core"]' '{"org_id":ORG_ID,"team_id":TEAM_ID}'
-terraform import 'seqera_custom_role.view' '{"name":"nf-core Read Only","org_id":ORG_ID}'
+terraform import 'seqera_custom_role.view' '{"name":"nf-core-read-only","org_id":ORG_ID}'
 terraform import 'seqera_workspace_participant.managed["core"]' 'ORG_ID/WORKSPACE_ID/team:TEAM_ID'
 ```
 
