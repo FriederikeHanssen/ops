@@ -14,6 +14,8 @@ The built-in `view` role is intentionally avoided. Issue [#237](https://github.c
 
 The manifest is deliberately empty. Before the first apply, inventory existing teams, memberships, and team workspace participants, then import every existing object into the stable addresses below and reconcile the manifest. Terraform's normal plan on an unimported existing object would otherwise propose creating a duplicate or expanding access. Keep at least one Seqera organization owner and an independent recovery path outside this configuration. No `prevent_destroy` is used on memberships, so removing a handle from the manifest revokes that team membership.
 
+Custom-role definitions apply at organization scope. Before adopting either configured name, privately inventory all assignments across the organization and confirm the existing permissions match. A role assigned outside this migration scope must remain unmanaged; configure a new, unused role name through code review instead. Recheck assignment scope before changing permissions later. [Seqera roles API](https://docs.seqera.io/platform-api/info/roles-info).
+
 Stable addresses:
 
 - `seqera_teams.managed["core"]`, `seqera_teams.managed["pipeline-maintainers"]`, `seqera_teams.managed["view"]`

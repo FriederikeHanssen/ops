@@ -72,6 +72,8 @@ Terraform state contains Seqera identity and access metadata and must be treated
 
 The workspace itself and direct user participant grants are outside this module. Start with a read-only inventory from an authorized workspace administrator, including direct participant `participantId`/`user_id`/role fields when available, organization team IDs and membership `member_id` values, team workspace grants, and custom-role definitions/permissions. Capture it privately; do not add raw inventory to the repository.
 
+Custom-role definitions are organization-wide, even though this root grants access to one workspace. Before importing an existing managed role name, confirm its permissions already match this configuration and inventory its assignments in every organization workspace. Do not adopt or change a role used outside the approved migration scope. Choose a new, unused managed role name through a reviewed code change instead, leaving the existing shared definition intact. Repeat the assignment-scope check before later permission changes. [Seqera role scope](https://docs.seqera.io/platform-api/info/roles-info).
+
 Then:
 
 1. Confirm organization and workspace IDs from protected configuration and the Seqera UI/API. The workspace is externally owned and is not declared as a Terraform resource.
