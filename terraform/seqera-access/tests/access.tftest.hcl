@@ -37,7 +37,7 @@ run "teams_receive_the_intended_workspace_roles" {
   }
 
   assert {
-    condition     = toset(keys(seqera_teams.managed)) == toset(["core", "pipeline-maintainers", "view"])
+    condition     = toset(keys(seqera_teams.managed)) == toset(["core", "pipeline-maintainers", "view"]) && seqera_teams.managed["view"].name == "viewers"
     error_message = "The module must manage the three access teams."
   }
 

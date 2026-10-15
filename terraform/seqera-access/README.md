@@ -9,7 +9,7 @@ itself, add organization members, or manage direct user grants.
 | ---------------------- | ------------------------------ | -------------------------------------------------- |
 | `core`                 | `admin`                        | Workspace administration                           |
 | `pipeline-maintainers` | `nf-core-pipeline-maintainers` | Launch workflows and create or configure pipelines |
-| `view`                 | `nf-core-read-only`            | Read workspace pipelines and workflow information  |
+| `viewers`              | `nf-core-read-only`            | Read workspace pipelines and workflow information  |
 
 The two custom roles are organization-level Seqera roles, even though this
 configuration grants them to teams in one workspace. Before adopting an

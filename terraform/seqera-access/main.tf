@@ -70,7 +70,7 @@ locals {
 resource "seqera_teams" "managed" {
   for_each = local.team_roles
 
-  name        = each.key
+  name        = each.key == "view" ? "viewers" : each.key
   org_id      = var.org_id
   description = "Managed access team: ${each.key}"
 }
