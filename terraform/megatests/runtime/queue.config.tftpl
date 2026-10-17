@@ -5,6 +5,8 @@ process {
     errorStrategy = { task.exitStatus in ((130..145) + 104 + 175) ? 'retry' : 'terminate' }
     queue = { task.attempt > 1 ? '${ondemand_queue}' : '${spot_queue}' }
 }
+%{ if fusion_enabled ~}
 fusion {
     tags = '[.command.*|.exitcode|.fusion.*](nextflow.io/metadata=true),[*](nextflow.io/temporary=true)'
 }
+%{ endif ~}

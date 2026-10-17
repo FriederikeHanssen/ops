@@ -42,6 +42,7 @@ class DiscoveryTests(unittest.TestCase):
                 "computeQueue": name,
                 "headQueue": "actual-head",
                 "executionRole": "arn:aws:iam::123456789012:role/execution",
+                "cliPath": "/actual/forge/bin/aws",
             },
         }
 
@@ -64,6 +65,40 @@ class DiscoveryTests(unittest.TestCase):
             self.deployment, lambda _: next(responses), pause=pauses.append
         )
         self.assertEqual(pauses, [15])
+
+    def test_workload_survives_discovery_for_runtime_configuration(self):
+        for workload in ["cpu-fusion", "cpu-s3", "gpu-fusion"]:
+            self.deployment["workload"] = workload
+            with self.subTest(workload=workload):
+                result = discovery.discover(
+                    self.deployment,
+                    lambda ce_id: self.ce("spot" if ce_id == "spot-id" else "ondemand"),
+                )["deployment"]
+                self.assertEqual(result["workload"], workload)
+
+    def test_s3_discovery_carries_actual_cli_path(self):
+        self.deployment["workload"] = "cpu-s3"
+        result = discovery.discover(
+            self.deployment,
+            lambda ce_id: self.ce("spot" if ce_id == "spot-id" else "ondemand"),
+        )["deployment"]
+        self.assertEqual(result["spot"]["cli_path"], "/actual/forge/bin/aws")
+
+    def test_s3_discovery_rejects_missing_or_mismatched_cli_path(self):
+        self.deployment["workload"] = "cpu-s3"
+        ce = self.ce("spot")
+        del ce["config"]["cliPath"]
+        with self.assertRaisesRegex(ValueError, "AWS CLI path"):
+            discovery.extract(self.deployment, "spot", ce)
+
+        def read(ce_id):
+            ce = self.ce("spot" if ce_id == "spot-id" else "ondemand")
+            if ce_id == "od-id":
+                ce["config"]["cliPath"] = "/different/bin/aws"
+            return ce
+
+        with self.assertRaisesRegex(ValueError, "same AWS CLI path"):
+            discovery.discover(self.deployment, read)
 
     def test_creation_failure_stops_runtime(self):
         with self.assertRaisesRegex(ValueError, "ERROR"):

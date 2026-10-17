@@ -1,4 +1,4 @@
-name: CPU Fusion megatests setup
+name: AWS megatests setup
 
 on:
   pull_request:
@@ -44,6 +44,11 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        workload: [cpu-fusion, cpu-s3, gpu-fusion]
     environment: megatests-test
     permissions:
       contents: read
@@ -54,6 +59,7 @@ jobs:
       TOWER_API_ENDPOINT: https://api.cloud.seqera.io
       TF_VAR_workspace_id: ${{ vars.MEGATESTS_WORKSPACE_ID }}
       TF_VAR_credentials_id: ${{ vars.MEGATESTS_CREDENTIALS_ID }}
+      TF_VAR_workload: ${{ matrix.workload }}
       STATE_BUCKET: ${{ vars.MEGATESTS_STATE_BUCKET }}
       STATE_REGION: ${{ vars.MEGATESTS_STATE_REGION }}
       STATE_PREFIX: ${{ vars.MEGATESTS_STATE_PREFIX }}
@@ -66,6 +72,10 @@ jobs:
           for name in TOWER_ACCESS_TOKEN TF_VAR_workspace_id TF_VAR_credentials_id STATE_BUCKET STATE_REGION STATE_PREFIX AWS_ROLE_ARN; do
             if [[ -z "${!name}" ]]; then echo "Missing configuration: $name" >&2; exit 1; fi
           done
+          # Keep the existing CPU state's keys; each addition gets its own pair.
+          if [[ "$TF_VAR_workload" != cpu-fusion ]]; then
+            echo "STATE_PREFIX=$STATE_PREFIX/$TF_VAR_workload" >> "$GITHUB_ENV"
+          fi
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: "1.14.5"
@@ -74,7 +84,7 @@ jobs:
         with:
           aws-region: ${{ vars.MEGATESTS_STATE_REGION }}
           role-to-assume: ${{ vars.MEGATESTS_AWS_ROLE_ARN }}
-      - name: Create or reconcile Forge CPU Fusion infrastructure
+      - name: Create or reconcile Forge infrastructure
         working-directory: terraform/megatests/forge
         run: |
           terraform init -input=false -lockfile=readonly \

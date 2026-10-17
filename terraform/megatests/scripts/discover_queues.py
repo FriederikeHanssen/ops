@@ -39,8 +39,15 @@ def extract(deployment, kind, ce):
         r"[A-Za-z0-9_-]{1,128}", queue_name
     ):
         raise ValueError("Forge did not return a usable compute queue name")
+    staging = {}
+    if deployment.get("workload") == "cpu-s3":
+        cli_path = config.get("cliPath")
+        if not isinstance(cli_path, str) or not cli_path.strip():
+            raise ValueError("Non-Fusion S3 staging requires Forge's AWS CLI path")
+        staging["cli_path"] = cli_path
     if kind == "ondemand":
         return {
+            **staging,
             "queue_name": queue_name,
             "ce_id": ce["id"],
             "ce_name": ce["name"],
@@ -59,6 +66,7 @@ def extract(deployment, kind, ce):
     ):
         raise ValueError("Forge returned an unusable head job role")
     return {
+        **staging,
         "queue_name": queue_name,
         "head_queue": head_queue,
         "execution_role": execution_role,
@@ -91,6 +99,10 @@ def discover(deployment, read, timeout=1800, pause=time.sleep, clock=time.monoto
         result[kind] = extract(deployment, kind, ce)
     if result["spot"]["queue_name"] == result["ondemand"]["queue_name"]:
         raise ValueError("Spot and On-Demand queues must differ")
+    if deployment.get("workload") == "cpu-s3" and (
+        result["spot"]["cli_path"] != result["ondemand"]["cli_path"]
+    ):
+        raise ValueError("Both S3 staging queues must use the same AWS CLI path")
     return {"deployment": result}
 
 
@@ -112,7 +124,7 @@ def main():
             ),
             time.monotonic() + 900,
         )
-        print("Manual CPU Fusion CE is ready.")
+        print(f"Manual {deployment.get('workload', 'cpu-fusion')} CE is ready.")
         return
     if args.output is None:
         parser.error("--output is required for Forge discovery")

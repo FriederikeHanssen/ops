@@ -3,6 +3,40 @@ variables {
   workspace_id   = "123"
   credentials_id = "test-credential"
 }
+run "s3_staging_without_fusion" {
+  command = plan
+  variables {
+    workload = "cpu-s3"
+  }
+  assert {
+    condition = alltrue([
+      for kind, ce in seqera_aws_batch_ce.carrier :
+      !ce.config.enable_fusion && !ce.config.nvme_storage_enabled &&
+      !ce.config.fusion_snapshots && !ce.config.forge.gpu_enabled &&
+      !ce.config.forge.arm64_enabled && !ce.config.forge.fargate_head_enabled &&
+      ce.name == "nf-core-test-cpu-s3-${kind}-forge" &&
+      ce.config.work_dir == "s3://nf-core-awsmegatests/test/cpu-s3"
+    ])
+    error_message = "S3 staging must use its own names/path with Fusion, NVMe and snapshots disabled."
+  }
+}
+run "gpu_fallback_retains_gpu_capacity" {
+  command = plan
+  variables {
+    workload = "gpu-fusion"
+  }
+  assert {
+    condition = alltrue([
+      for ce in seqera_aws_batch_ce.carrier :
+      ce.config.forge.gpu_enabled && !ce.config.forge.arm64_enabled &&
+      ce.config.enable_fusion && ce.config.nvme_storage_enabled &&
+      !ce.config.fusion_snapshots && ce.config.forge.max_cpus == 500 &&
+      contains(ce.config.forge.instance_types, "g4dn") &&
+      contains(ce.config.forge.instance_types, "g5")
+    ])
+    error_message = "Both GPU queues need NVIDIA-capable backing; mixed GPU models cannot safely enable snapshots."
+  }
+}
 run "cpu_fusion_ec2_heads" {
   command = plan
   assert {
@@ -13,7 +47,7 @@ run "cpu_fusion_ec2_heads" {
       !ce.config.forge.arm64_enabled && ce.config.forge.min_cpus == 0 &&
       ce.config.forge.max_cpus == 1000
     ])
-    error_message = "First rollout must be CPU Fusion/NVMe with EC2 heads and no GPU/ARM."
+    error_message = "The CPU Fusion workload must retain NVMe, EC2 heads and x86 CPU capacity."
   }
   assert {
     condition     = seqera_aws_batch_ce.carrier["spot"].config.forge.type == "SPOT" && seqera_aws_batch_ce.carrier["ondemand"].config.forge.type == "EC2"
